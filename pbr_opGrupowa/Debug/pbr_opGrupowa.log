@@ -1,2 +1,6 @@
 ﻿  pbr_opGrupowa.cpp
+D:\Programy\visualStudio\programy\1\pbr_opGrupowa\pbr_opGrupowa\pbr_opGrupowa.cpp(67,15): warning C4244: 'argument': conversion from 'double' to 'const float', possible loss of data
+D:\Programy\visualStudio\programy\1\pbr_opGrupowa\pbr_opGrupowa\pbr_opGrupowa.cpp(67,29): warning C4244: 'argument': conversion from 'double' to 'const float', possible loss of data
+D:\Programy\visualStudio\programy\1\pbr_opGrupowa\pbr_opGrupowa\pbr_opGrupowa.cpp(68,15): warning C4244: 'argument': conversion from 'double' to 'const float', possible loss of data
+D:\Programy\visualStudio\programy\1\pbr_opGrupowa\pbr_opGrupowa\pbr_opGrupowa.cpp(68,29): warning C4244: 'argument': conversion from 'double' to 'const float', possible loss of data
   pbr_opGrupowa.vcxproj -> D:\Programy\visualStudio\programy\1\pbr_opGrupowa\Debug\pbr_opGrupowa.exe

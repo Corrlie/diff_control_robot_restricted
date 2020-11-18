@@ -15,14 +15,15 @@ const float theta0 = -(r / b)*(fi_R0 - fi_L0);
 */
 Matrix4f operatorAd(Vector4f mat_g) {
     Matrix2f R, G, Zeros_22, Ident_22; 
+    Matrix4f res;
     float fi = mat_g(2) - mat_g(3);
+
     R << cos(fi), -sin(fi),
         sin(fi), cos(fi);
 
     G << mat_g(1), -mat_g(1),
         -mat_g(0), mat_g(0);
 
-    Matrix4f res;
     res << R(0, 0), R(0, 1), G(0, 0), G(0, 1),
         R(1, 0), R(1, 1), G(1, 0), G(1, 1),
         0, 0, 1, 0,
@@ -32,9 +33,9 @@ Matrix4f operatorAd(Vector4f mat_g) {
 }
 
 Vector4f operacjaGrupowa(Vector4f mat_g, Vector4f mat_h) {
-    
     Matrix4f T;
     float fi = mat_g(2) - mat_g(3);
+
     T << cos(fi), -sin(fi), 0, 0,
         sin(fi), cos(fi), 0, 0,
         0, 0, 1, 0,
@@ -45,56 +46,84 @@ Vector4f operacjaGrupowa(Vector4f mat_g, Vector4f mat_h) {
     return mat_g + T * mat_h;
 }
 
-
 Vector4f inv_g(Vector4f mat_g) {
-    Matrix4f T_gfir;
-    Matrix4f T_gfil;
-
-    Matrix4f T;
+    Matrix4f T, T_trans;
+    Vector4f res;
     float fi = mat_g(2) - mat_g(3);
+
     T << cos(fi), -sin(fi), 0, 0,
         sin(fi), cos(fi), 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1;
-    MatrixXf T_trans = T.transpose();
-    // cout << "\n\nMacierz T:\n\n" << T << endl;
-    // cout << "\n\nMacierz T trans:\n\n" << T_trans << endl;
-    Vector4f  res = -T_trans * mat_g;
-    // cout << "\n\g_odwr:\n\n" << res;
-    return res;
+    T_trans = T.transpose();
+    res = -T_trans * mat_g;
 
+    return res;
 }
+
+Matrix4f X(float e) {
+    Vector4f X1, X2, X3, X4;
+    Matrix4f res;
+
+    X1 << 0.5 * cos(e), 0.5 * sin(e), 1, 0;
+    X2 << 0.5 * cos(e), 0.5 * sin(e), 0, 1;
+    X3 << -sin(e), cos(e), 0, 0;
+    X4 << cos(e), sin(e), 0, 0;
+    
+    res.col(0) = X1;
+    res.col(1) = X2;
+    res.col(2) = X3;
+    res.col(3) = X4;
+
+    return res;
+}
+
+Matrix4f opAdX(Vector4f mat_g) {
+
+    Matrix4f opAd, mat_X_e, inv_mat_X_e, res;
+    float e = 0;
+
+    opAd = operatorAd(mat_g);
+    mat_X_e = X(e);
+    cout << "\n\nMacierz X(e)\n\n"<<mat_X_e<<"\n\n" << endl;
+
+    inv_mat_X_e = mat_X_e.inverse();
+  
+    res = inv_mat_X_e * opAd * mat_X_e; // result
+    return res;
+}
+
 
 int main()
 {
-    Vector4f g;
+    Vector4f g, h, mat_opgrup, g_odwr;
+    Matrix4f mat_opAd, mat_opAd_X;
+ 
     g << 1, 2, 3, 4;
 
-    Vector4f h;
     h << 10, 20, 30, 40;
 
-    cout << "\n\n Operacja grupowa: \n" << endl;
-    Vector4f mat_opgrup;
+    cout << "\n\nOperacja grupowa: \n" << endl;
     mat_opgrup = operacjaGrupowa(g, h);
     cout << mat_opgrup;
 
-    cout << "\n\n Operator AD: \n" << endl; 
-    Matrix4f mat_opAd;
+    cout << "\n\nOperator AD: \n" << endl; 
+    
     mat_opAd = operatorAd(g);
     cout << mat_opAd;
 
-    /*
-    MatrixXf inv_g_auto;
-    inv_g_auto = g.inverse(); // nie dziala xd
-    cout << "\n Maciez odwrotna do g:\n" << inv_g_auto;
-    */
+    cout << "\n\nMacierz g:\n" << g;
+    
+    g_odwr= inv_g(g);
+    cout << "\n\n Macierz odwrotna do g: \n\n" << g_odwr;
 
-    cout << "\nMacierz g: \n" << g;
-    Vector4f g_odwr= inv_g(g);
-    cout << "\n Macierz odwrotna do g: \n" << g_odwr;
+    cout << "\n\nOperacja grupowa g i g^-1:\n\n" << operacjaGrupowa(g, g_odwr);
+    
+    // inna kolejnosc - sprawdzenie - ok
+    cout << "\n\nInna kolejnosc:" << endl;
+    cout << "\nOperacja grupowa g i g^-1:\n" << operacjaGrupowa(g_odwr, g);
 
-    cout << "\nOperacja grupowa g i g^-1:\n" << operacjaGrupowa(g, g_odwr);
-
-    //cout << "\nMnozenie g i g^-1: \n" << g.dot(g_odwr);
-
+    // sprawdzenie operator AdX 
+    mat_opAd_X = opAdX(g);
+    cout << "\n\nZ operatora AdX:\n\n" << mat_opAd_X;
 }
