@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pbr_opGrupowa.cpp">
+    <ClCompile Include="DiffDriveBot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
