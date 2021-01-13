@@ -1,143 +1,154 @@
-#include <iostream>
-#include <Eigen/Dense>
-# include <cmath>
-using namespace std;
-using namespace Eigen;
-// gx - 0, gy - 1, gfi r - 2, gfi l - 3 :: zmienna - indeks w macierzy g
+#define _USE_MATH_DEFINES
+#include <iostream>						// Strumien wejscia/wyjscia
+#include <Eigen/Dense>					// Biblioteka Eigen
+#include <cmath>						// Biblioteka do obliczen matematycznych
+#include <fstream>
+
+using namespace std;					// Przedrostek std
+using namespace Eigen;					// Przedrostek Eigen
+
+// gx - 0, 
+// gy - 1, 
+// gfi r - 2, 
+// gfi l - 3 :: zmienna - indeks w macierzy g
+
 /*
-const int r = 0.026; // wheels radius
-const int b = 0.066; // distance between wheels
-const float fi_R0 = 0; // init revol right wheel
-const float fi_L0 = 0; // init revol left wheel
-const float theta0 = -(r / b)*(fi_R0 - fi_L0);
+const int r = 0.026;							// Srednica kol
+const int b = 0.066;							// Rozstaw kol
+const float fi_R0 = 0;							// Wartosc poczatkowa orientacji kola prawego
+const float fi_L0 = 0;							// Wartosc poczatkowa orientacji kola prawego
+const float theta0 = -(r / b)*(fi_R0 - fi_L0);	// Wartosc poczatkowa orientacji robota
 */
-Matrix4d calc_opAd(Vector4d vec_g) {
-	/*
-		R - Rotation matrix
-		G - Lie group
-		fi - diff between angles
-	*/
-	Matrix2d R, G;
 
-	Matrix4d res;
-	double fi = vec_g(2) - vec_g(3);
+/// ================================================= FUNKCJE ================================================== ///
 
-	R << cos(fi), -sin(fi),
-		sin(fi), cos(fi);
+// ------------------------------------------------ Operator Ad -------------------------------------------------- //
+Matrix4d obliczOperatorAd(Vector4d g) {				// Operator Ad	(9)
+	Matrix4d Wynik;									// Macierz wynikowa
 
-	G << vec_g(1), -vec_g(1),
-		-vec_g(0), vec_g(0);
+	double fi = g(2) - g(3);						// Orientacja kol
 
-	res << R(0, 0), R(0, 1), G(0, 0), G(0, 1),
-		R(1, 0), R(1, 1), G(1, 0), G(1, 1),
+	Wynik << cos(fi), -sin(fi), g(1), -g(1),
+		sin(fi), cos(fi), -g(0), g(0),
 		0, 0, 1, 0,
 		0, 0, 0, 1;
 
-	return res;
+	return Wynik;
 }
 
-Vector4d calc_opGroup(Vector4d vec_g, Vector4d vec_h) {
-	Matrix4d T;
-	double fi = vec_g(2) - vec_g(3); // wheels orientation
-	T << cos(fi), -sin(fi), 0, 0,
+// --------------------------------------------- Operacja grupowa ------------------------------------------------ //
+Vector4d obliczOperacjaGrupowa(Vector4d g, Vector4d h) {		// Operacja grupowa
+	Matrix4d T;													// Macierz klatkowa (R 0;  I 2x2 0)
+	Vector4d gh;												// Macierz wynikowa
+	double fi = g(2) - g(3);									// Orientacja kol
+
+	T << cos(fi), -sin(fi), 0, 0,								// Macierz klatkowa (R 0;  I 2x2 0)
 		sin(fi), cos(fi), 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1;
-	// vec_g(2) - g fi r
-	// vec_g(3) - g fi l
-	// vec_g(i) - odenisienie do i-tego elementu macierzy vec_g
-	return vec_g + T * vec_h;
+
+	gh = g + T * h;											// Operacja grupowa
+
+	return gh;													// g - konfiguracja przeskalowana, h - operator translacji lewej
 }
 
-Vector4d inv_g(Vector4d vec_g) { // calculates inversion of vector g
-	Matrix4d T, T_trans;
-	Vector4d res;
-	double fi = vec_g(2) - vec_g(3);
-
-	T << cos(fi), -sin(fi), 0, 0,
-		sin(fi), cos(fi), 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1;
-	T_trans = T.transpose();
-	res = -T_trans * vec_g;
-
-	return res;
-}
-
-Matrix4d calc_X(Vector4d e) { // calculates control matrix
-	Vector4d X1, X2, X3, X4; 
-	Matrix4d res;
+// ------------------------------------------------ Sterowania --------------------------------------------------- //
+Matrix4d obliczX(Vector4d e) {
+	Vector4d X1;							// Pole wektorowe sterowania X1
+	Vector4d X2;							// Pole wektorowe sterowania X2
+	Vector4d X3;							// Nawias Liego pierwszego rzedu X3
+	Vector4d X4;							// Nawias Liego drugiego rzedu X4
+	Matrix4d Wynik;							// Macierz wynikowa
 	double fi;
 	fi = e(2) - e(3);
 
-	X1 << 0.5 * cos(fi), 0.5 * sin(fi), 1, 0; 
-	X2 << 0.5 * cos(fi), 0.5 * sin(fi), 0, 1;
-	X3 << -sin(fi), cos(fi), 0, 0;
-	X4 << cos(fi), sin(fi), 0, 0;
+	X1 << 0.5 * cos(fi), 0.5 * sin(fi), 1, 0;   // Pole wektorowe sterowania X1
+	X2 << 0.5 * cos(fi), 0.5 * sin(fi), 0, 1; // Pole wektorowe sterowania X2
+	X3 << -sin(fi), cos(fi), 0, 0;			// Nawias Liego pierwszego rzedu X3
+	X4 << cos(fi), sin(fi), 0, 0;				// Nawias Liego drugiego rzedu X4
 
-	//control matrix - compound of X1,2,3,4
-	res.col(0) = X1;
-	res.col(1) = X2;
-	res.col(2) = X3;
-	res.col(3) = X4;
+	Wynik.col(0) = X1;
+	Wynik.col(1) = X2;
+	Wynik.col(2) = X3;
+	Wynik.col(3) = X4;
 
-	return res;
+	return Wynik;												// Macierz sterowañ
 }
 
-Matrix4d calc_opAdX(Vector4d vec_g) {
+// ------------------------------- Operator Ad na podstawie elementu neutralnego --------------------------------- //
+Matrix4d obliczOperatorAdx(Vector4d g) {
 
-	Matrix4d opAd, mat_X_e, inv_mat_X_e, res;
-	Vector4d e_v; // neutral element - zero vec
-	e_v << 0, 0, 0, 0;
-	opAd = calc_opAd(vec_g);
-	mat_X_e = calc_X(e_v); // control matrix
+	Matrix4d operatorAd;											// Operator Ad
+	Matrix4d Xe;														// Macierz sterowan
+	Matrix4d xeInv;													// Odwrocona macierz sterowan
+	Matrix4d Wynik;													// Macierz wynikowa
+	Vector4d e;														// Element neutralny
 
-	// cout << "\n\nMacierz X(e)\n\n"<<mat_X_e<<"\n\n" << endl;
-	inv_mat_X_e = mat_X_e.inverse(); // inverse - MUST CREATE NEW MAT!
+	e << 0, 0, 0, 0;
+	operatorAd = obliczOperatorAd(g);								// Obliczanie operatora Ad
+	Xe = obliczX(e);													// Obliczanie X
 
-	res = inv_mat_X_e * opAd * mat_X_e; // result
-	return res;
+	xeInv = Xe.inverse();												// Obliczenie  macierzy odwrotnej X
+
+	Wynik = xeInv * operatorAd * Xe;									// Obliczenie operatora Adx
+	return Wynik;
 }
 
-Vector4d fun_f(Vector2d alfa) { // function f(alfa)
-	double alfa1, alfa2, beta1, beta11, beta12, beta21, beta22, gamma1, beta_h;
-	Vector4d f_alfa;
+// -------------------------------- Funkcja poprzeczna w sasiedztwie poczatku ------------------------------------ //
+Vector4d obliczFAlfa(Vector2d alfa) {
 
-	// parameters
-	alfa1 = alfa(0);
-	alfa2 = alfa(1);
+	double alfa1;			// ??
+	double alfa2;			// ??
+	double beta1;			// Parametr beta1 = sqrt(beta11^2+beta12^2)
+	double beta11;			// Parametr beta11
+	double beta12;			// Parametr beta12
+	double beta21;			// Parametr beta21
+	double beta22;			// Parametr beta22
+	double gamma1;			// ??
 
-	beta11 = 1;
-	beta12 = 1;
-	beta_h = pow(beta11, 2) + pow(beta12, 2);
-	beta1 = sqrt(beta_h);
-	beta21 = 1;
-	beta22 = 1;
+	Vector4d fAlfa;			// Funkcja wynikowa
+
+	alfa1 = alfa(0);		// Przypisanie wartosci alfa1
+	alfa2 = alfa(1);		// Przypisanie wartosci alfa1
+
+	beta11 = 0.075;
+	beta12 = 0.075;
+	beta21 = 0.0124;
+	beta22 = 0.4;
+	beta1 = sqrt(pow(beta11, 2) + pow(beta12, 2));
+	gamma1 = atan2(beta11, beta12);	// (18)
+
+	fAlfa(0) = 0.25 * beta1 * sin(alfa1 + gamma1) * (2 - (pow(beta22, 2)) * (pow(cos(alfa2), 2)) - beta1 * beta22 * sin(alfa1 - gamma1) * cos(alfa2) - (1.0 / 3.0) * (pow(beta1, 2)) * (pow(sin(alfa1 - gamma1), 2))) - 0.25 * beta21 * beta22 * sin(2 * alfa2),
+		fAlfa(1) = 0.25 * beta1 * sin(alfa1 + gamma1) * (beta1 * sin(alfa1 - gamma1) + 2 * beta22 * cos(alfa2)) + beta21 * sin(alfa2);
+	fAlfa(2) = beta11 * sin(alfa1) + 0.5 * beta22 * cos(alfa2);
+	fAlfa(3) = beta12 * cos(alfa1) - 0.5 * beta22 * cos(alfa2);
+	return fAlfa;
+}
+
+// ----------------------------- Pochodna funkcji poprzecznej w sasiedztwie poczatku ----------------------------- //
+Matrix<double, 4, 2> obliczDFAlfa(Vector2d alfa) {
+
+	double alfa1;			// ??
+	double alfa2;			// ??
+	double beta1;			// Parametr beta1 = sqrt(beta11^2+beta12^2)
+	double beta11;			// Parametr beta11
+	double beta12;			// Parametr beta12
+	double beta21;			// Parametr beta21
+	double beta22;			// Parametr beta22
+	double gamma1;			// ??
+
+	beta11 = 0.075;
+	beta12 = 0.075;
+	beta21 = 0.0124;
+	beta22 = 0.4;
+	beta1 = sqrt(pow(beta11, 2) + pow(beta12, 2));
 	gamma1 = atan2(beta11, beta12);
 
-	f_alfa(0) = 0.25 * beta1 * sin(alfa1 + gamma1) * (2 - (pow(beta22, 2)) * (pow(cos(alfa2), 2)) - beta1 * beta22 * sin(alfa1 - gamma1) * cos(alfa2) - (1.0 / 3.0) * (pow(beta1, 2)) * (pow(sin(alfa1 - gamma1), 2))) - 0.25 * beta21 * beta22 * sin(2 * alfa2),
-		f_alfa(1) = 0.25 * beta1 * sin(alfa1 + gamma1) * (beta1 * sin(alfa1 - gamma1) + 2 * beta22 * cos(alfa2)) + beta21 * sin(alfa2);
-	f_alfa(2) = beta11 * sin(alfa1) + 0.5 * beta22 * cos(alfa2);
-	f_alfa(3) = beta12 * cos(alfa1) - 0.5 * beta22 * cos(alfa2);
-	return f_alfa;
-}
-
-Matrix<double, 4, 2> fun_df(Vector2d alfa) { // df/dalfa function 
-	double alfa1, alfa2, beta1, beta11, beta12, beta21, beta22, gamma1, beta_h;
-	Matrix<double, 4, 2> dfalfa;
+	Matrix<double, 4, 2> dfAlfa;
 	RowVector4d dalfa1, dalfa2;
 
-	// parameters
 	alfa1 = alfa(0);
 	alfa2 = alfa(1);
-
-	beta11 = 1;
-	beta12 = 1;
-	beta_h = pow(beta11, 2) + pow(beta12, 2);
-	beta1 = sqrt(beta_h);
-	beta21 = 1;
-	beta22 = 1;
-	gamma1 = atan2(beta11, beta12);
 
 	dalfa1 << -1.0 / 4.0 * (beta11 * cos(alfa1) - beta12 * sin(alfa1)) * ((pow(beta22, 2)) * (pow(cos(alfa2), 2)) + 1.0 / 3.0 * (pow(beta12 * cos(alfa1) - beta11 * sin(alfa1), 2)) - beta22 * cos(alfa2) * (beta12 * cos(alfa1) - beta11 * sin(alfa1)) - 2.0) - 1.0 / 3.0 * ((beta11 * cos(alfa1) + beta12 * sin(alfa1)) * (beta12 * cos(alfa1) + beta11 * sin(alfa1)) / 4.0 * (3.0 * beta22 * cos(alfa2) - 2.0 * beta12 * cos(alfa1) + 2.0 * beta11 * sin(alfa1))),
 		(pow(beta1, 2) * sin(alfa1 + gamma1) * cos(alfa1 - gamma1)) / 4 + (beta1 * cos(alfa1 + gamma1) * (2 * beta22 * cos(alfa2) + beta1 * sin(alfa1 - gamma1))) / 4,
@@ -149,132 +160,204 @@ Matrix<double, 4, 2> fun_df(Vector2d alfa) { // df/dalfa function
 		-(beta22 * sin(alfa2)) / 2,
 		(beta22 * sin(alfa2)) / 2;
 
-	dfalfa.col(0) = dalfa1;
-	dfalfa.col(1) = dalfa2;
+	/*
+		dalfa1 << -(pow(beta1, 2)*(2 * alfa1 - 2 * gamma1)) / 3 - (beta1*cos(alfa1 + gamma1)*pow(cos(alfa2), 2)*(pow(beta22, 2) - 2)) / 4 - beta1 * beta22*cos(alfa2)*cos(alfa1 - gamma1),
+			(pow(beta1, 2)*sin(alfa1 + gamma1)*cos(alfa1 - gamma1)) / 4 + (beta1*cos(alfa1 + gamma1)*(2 * beta22*cos(alfa2) + beta1 * sin(alfa1 - gamma1))) / 4,
+			beta11*cos(alfa1),
+			-beta12 * sin(alfa1);
 
-	return dfalfa;
+		dalfa2 << beta1 * beta22*sin(alfa2)*sin(alfa1 - gamma1) - (beta21*beta22*cos(2 * alfa2)) / 2 + (beta1*sin(alfa1 + gamma1)*cos(alfa2)*sin(alfa2)*(pow(beta22, 2) - 2)) / 2,
+			beta21*cos(alfa2) - (beta1*beta22*sin(alfa1 + gamma1)*sin(alfa2)) / 2,
+			-(beta22*sin(alfa2)) / 2,
+			(beta22*sin(alfa2)) / 2;
+	*/
+	dfAlfa.col(0) = dalfa1;
+	dfAlfa.col(1) = dalfa2;
+
+	return dfAlfa;
 }
 
-
-Matrix4d calc_C_hat(Vector2d alfa) { // estimated C matrix
+// ------------------------------------------------- Wyznacznik c ------------------------------------------------ //
+Matrix4d obliczC(Vector2d alfa) {
 	Matrix<double, 4, 2> C;
 	Matrix<double, 4, 2> dAlfa;
 	Vector4d fAlfa;
-	Matrix4d mat_X_f;
+	Matrix4d X;
 	Matrix4d xInv;
 	Matrix<double, 4, 2> AAlfa;
-	Matrix4d res;
+	Matrix4d Wynik;
 
-	dAlfa = fun_df(alfa);	// 4x2 
-	fAlfa = fun_f(alfa);	// 4x1
-	mat_X_f = calc_X(fAlfa);	// 4x4
-	xInv = mat_X_f.inverse();	// 4x4
-	AAlfa = xInv * dAlfa;	// 4x4*4x2 = 4x2
+	dAlfa = obliczDFAlfa(alfa);			// 4x2 
+	fAlfa = obliczFAlfa(alfa);			// 4x1
+	X = obliczX(fAlfa);					// 4x4
+	xInv = X.inverse();					// 4x4
+	AAlfa = xInv * dAlfa;				// 4x4*4x2 = 4x2 
 
 	C << 1, 0,
 		0, 1,
 		0, 0,
 		0, 0;
 
-	res.col(0) = C.col(0);
-	res.col(1) = C.col(1);
-	res.col(2) = -AAlfa.col(0);
-	res.col(3) = -AAlfa.col(1);
 
-	//	cout << "\n\n\n===================C========================\n" << C;
-	//	cout << "\n\n\n===================AAlfa========================\n" << AAlfa;
-	//	cout << "\n\n\n===================Czdaszkiem========================\n" << res<<"\n\n";
-	return res;
+	Wynik.col(0) = C.col(0);
+	Wynik.col(1) = C.col(1);
+	Wynik.col(2) = -AAlfa.col(0);
+	Wynik.col(3) = -AAlfa.col(1);
+
+	return Wynik;
 }
 
-Vector4d calc_dG(Vector4d g, Vector2d v, Vector2d alfa) { // calculate g derivative
-	Matrix<double, 4, 2> C;
-	Matrix4d mat_X_g;
-	Vector4d res;
+// ------------------------------------------------- T ------------------------------------------------ //
+Matrix4d obliczT(double gfi) {
+	Matrix2d I;
+	Matrix4d Wynik;
 
-	mat_X_g = calc_X(g);	// 4x4
-	C << 1, 0, 0, 0,	// = 4x2 
-		0, 1, 0, 0;
+	Wynik << cos(gfi), -sin(gfi), 0, 0,
+		sin(gfi), cos(gfi), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1;
 
-	res = mat_X_g * C * v;	// 4x4 * 4x2 = 4x2*2x1 = 4x1
-
-	return res;
+	return Wynik;
 }
-
+/// ================================================= MAIN ================================================== ///
 
 int main()
 {
-	Vector4d g, h, mat_opgrup, vec_gInv, f_alfa;
-	// g - scaled robot configuration
-	Matrix4d mat_opAd, mat_opAd_X, C_hat;
+	Vector4d eta;					// sygnal referencyjny
+	Matrix4d X;						// sterowania
+	Vector4d g;
+	Vector4d dg;
+	Vector2d v;						// sygnal sterujacy
+	Vector2d alfa;
+	Vector2d dAlfa;
+	Matrix4d cKreska;
+	Matrix4d cKreskaInv;
+	Vector4d f;
+	Matrix<double, 4, 2> C;
+	Matrix4d adX;
+	Matrix4d adXInv;
+	Matrix4d T;
+	Vector4d vKreska;
+	Vector2d gCord;
+	Vector2d Cord;
+	Matrix2d Rot;
+	Matrix2d RotInv;
+	Vector4d gInv;
+	Vector4d z;
+	Matrix<double, 4, 2> G;
+	//Vector4d dq;
+	//Vector4d q;
+	//const int Ts = 10000;
+	const int Ts = 10000;
+	double ts = 0.1;
+	double R = 0.5;
+	double omega = M_PI / 1000;
+	double r = 0.05;
+	double b = 0.245;
+	double theta0 = 0;
+	double gfi = 0;
+	//double x[Ts];
+	//double y[Ts];
+	double u1[Ts];
+	double u2[Ts];
+	double gx[Ts];
+	double gy[Ts];
+	double xr[Ts];
+	double yr[Ts];
+	double time[Ts];
+	double da1[Ts];
+	double da2[Ts];
+	double z1[Ts];
+	double z2[Ts];
+	//double theta[Ts];
+	//double thetar[Ts];
+	//double thetal[Ts];
 
-	Vector2d alfa, v;
-	double ts = 0;
+	int liczbaProbek = 0;
 
-	g << 1, 2, 3, 4;
+	Rot << cos(theta0), -sin(theta0), sin(theta0), cos(theta0);
 
-	h << 10, 20, 30, 40;
+	C << 1, 0,
+		0, 1,
+		0, 0,
+		0, 0;
 
-	cout << "\n\n=============== Operacja grupowa: ===============n" << endl;
-	mat_opgrup = calc_opGroup(g, h);
-	cout << mat_opgrup;
-
-	cout << "\n\n=============== Operator AD: ===============\n" << endl;
-
-	mat_opAd = calc_opAd(g);
-	cout << mat_opAd;
-
-	cout << "\n\n=============== Macierz g: ===============\n" << g << "\n-------------------------";
-
-	vec_gInv = inv_g(g);
-	cout << "\n\n=============== Macierz odwrotna do g: ===============\n\n" << vec_gInv << "\n-------------------------";
-
-	cout << "\n\n=============== Operacja grupowa g i g^-1: ===============\n\n" << calc_opGroup(g, vec_gInv) << "\n-------------------------";
-
-	// inna kolejnosc - sprawdzenie - ok
-	cout << "\n\n=============== Inna kolejnosc: ===============" << endl;
-	cout << "\n\n=============== Operacja grupowa g i g^-1: ===============\n" << calc_opGroup(vec_gInv, g) << "\n-------------------------";
-
-	// sprawdzenie operator AdX 
-	mat_opAd_X = calc_opAdX(g);
-	cout << "\n\n=============== Z operatora AdX: ===============\n\n" << mat_opAd_X << "\n-------------------------";
-
-
-	// sprawdzenie f(alfa)
 	alfa << 1, 1;
-	f_alfa = fun_f(alfa);
 
-	cout << "\n\n=============== funkcja f alfa: ===============\n" << f_alfa << "\n-------------------------";
+	//q << 0, 0, 0, 0;
 
-	// sprawdzenie df/dalfa
-	Matrix<double, 4, 2> df_dalfa;
-	df_dalfa = fun_df(alfa);
-	cout << "\n\n=============== df / dalfa: ===============\n" << df_dalfa << "\n-------------------------";
+	g << 0, 0, 0, 0;
 
-
-	// C z daszkiem
-
-	C_hat = calc_C_hat(alfa);
-	cout << "\n\n=============== C_hat: ===============\n" << C_hat << "\n-------------------------";
-
-
-	v << 1, 1;
-	/*
-
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < Ts; i++)									// 1000 - 1s (przy kroku 0.001)
 	{
-		mat_opGr = calc_opGroup(g, h);
-		mat_operatorAd = calc_opAd(g);
-		mat_gInv = inv_g(g);
-		operacjaGrupowa2 = calc_opGroup(g, mat_gInv);
-		Ckreska = calc_C_hat(alfa);
-		dG = calc_dG(g, v, alfa);
+		time[i] = ts * i;
 
-		g = g + ts * dG;
+		eta << 0, 0, R* omega* cos(omega * time[i]), -R * omega * sin(omega * time[i]);
 
-		ts = +0.001;
-		cout << "============================================================" << endl;
-		cout << "Macierz g: \n" << g << "\n";
+		f = obliczFAlfa(alfa);
+		adX = obliczOperatorAdx(f);
+		adXInv = adX.inverse();
+
+		cKreska = obliczC(alfa);
+		cKreskaInv = cKreska.inverse();
+
+		gfi = g(2) - g(3);
+		T = obliczT(gfi);
+		gInv = -T.transpose() * g;
+		z = obliczOperacjaGrupowa(g, gInv);
+
+		vKreska = cKreskaInv * adXInv * eta;
+
+		v << vKreska(0), vKreska(1);
+		dAlfa << vKreska(2), vKreska(3);
+		alfa = alfa + ts * dAlfa;
+
+		X = obliczX(g);
+		dg = X * C * v;				// (10)
+		g = g + ts * dg;
+
+		//theta[i] = r / b * gfi + theta0;
+		//G << r/2*cos(theta[i]), r/2*cos(theta[i]), r/2*sin(theta[i]), r/2*sin(theta[i]), 1, 0, 0, 1;
+
+		//dq = G * v;
+		//q = q + ts * dq;
+
+		//x[i] = q(0);
+		//y[i] = q(1);
+		//thetar[i] = q(2);
+		//thetal[i] = q(3);
+
+		gx[i] = g(0);
+		gy[i] = g(1);
+
+		xr[i] = eta(2);
+		yr[i] = eta(3);
+		u1[i] = v(0);
+		u2[i] = v(1);
+		da1[i] = dAlfa(0);
+		da2[i] = dAlfa(1);
+		z1[i] = z(0);
+		z2[i] = z(1);
+
+		//cout << "============================== \n";
+		//cout << "         Czas: " << time[i] << " s             ";
+		//cout << "\n============================== \n \n";
+		//cout << q << "\n \n";
+		liczbaProbek += 1;
+
 	}
-	*/
+	
+	ofstream myfile("x.txt");
+	if (myfile.is_open())
+	{
+		myfile << "Czas" << " " << "X" << " " << "Y" << " " << "XR" << " " << "YR" << " " << "u1" << " " << "u2" << " " << "dalfa1" << " " << "dalfa2" << " " << "z1"<< " " << "z2"<< "\n";
+		for (int count = 0; count < Ts; count++)
+		{
+			myfile << time[count] << " " << gx[count] << " " << gy[count] << " " << xr[count] << " " << yr[count] << " " << u1[count] << " " << u2[count] << " " << da1[count] << " " << da2[count]<< " "<<z1[count]<<" "<<z2[count]<< "\n";
+		}
+		myfile.close();
+	}
+	else cout << "Unable to open file";
+	
+
 }
