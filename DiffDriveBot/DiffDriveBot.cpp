@@ -244,34 +244,19 @@ int main()
 	Matrix2d RotInv;
 	Vector4d gInv;
 	Vector4d z;
+	Vector4d dz;
 	Matrix<double, 4, 2> G;
-	//Vector4d dq;
-	//Vector4d q;
-	//const int Ts = 10000;
-	const int Ts = 10000;
-	double ts = 0.1;
+	ofstream myfile("x.txt");
+
+	const int Ts = 200000;
+	double ts = 0.01;
 	double R = 0.5;
 	double omega = M_PI / 1000;
 	double r = 0.05;
 	double b = 0.245;
 	double theta0 = 0;
 	double gfi = 0;
-	//double x[Ts];
-	//double y[Ts];
-	double u1[Ts];
-	double u2[Ts];
-	double gx[Ts];
-	double gy[Ts];
-	double xr[Ts];
-	double yr[Ts];
-	double time[Ts];
-	double da1[Ts];
-	double da2[Ts];
-	double z1[Ts];
-	double z2[Ts];
-	//double theta[Ts];
-	//double thetar[Ts];
-	//double thetal[Ts];
+	double time;
 
 	int liczbaProbek = 0;
 
@@ -287,77 +272,48 @@ int main()
 	//q << 0, 0, 0, 0;
 
 	g << 0, 0, 0, 0;
+	z << 0, 0, 0, 0;
 
-	for (int i = 0; i < Ts; i++)									// 1000 - 1s (przy kroku 0.001)
-	{
-		time[i] = ts * i;
-
-		eta << 0, 0, R* omega* cos(omega * time[i]), -R * omega * sin(omega * time[i]);
-
-		f = obliczFAlfa(alfa);
-		adX = obliczOperatorAdx(f);
-		adXInv = adX.inverse();
-
-		cKreska = obliczC(alfa);
-		cKreskaInv = cKreska.inverse();
-
-		gfi = g(2) - g(3);
-		T = obliczT(gfi);
-		gInv = -T.transpose() * g;
-		z = obliczOperacjaGrupowa(g, gInv);
-
-		vKreska = cKreskaInv * adXInv * eta;
-
-		v << vKreska(0), vKreska(1);
-		dAlfa << vKreska(2), vKreska(3);
-		alfa = alfa + ts * dAlfa;
-
-		X = obliczX(g);
-		dg = X * C * v;				// (10)
-		g = g + ts * dg;
-
-		//theta[i] = r / b * gfi + theta0;
-		//G << r/2*cos(theta[i]), r/2*cos(theta[i]), r/2*sin(theta[i]), r/2*sin(theta[i]), 1, 0, 0, 1;
-
-		//dq = G * v;
-		//q = q + ts * dq;
-
-		//x[i] = q(0);
-		//y[i] = q(1);
-		//thetar[i] = q(2);
-		//thetal[i] = q(3);
-
-		gx[i] = g(0);
-		gy[i] = g(1);
-
-		xr[i] = eta(2);
-		yr[i] = eta(3);
-		u1[i] = v(0);
-		u2[i] = v(1);
-		da1[i] = dAlfa(0);
-		da2[i] = dAlfa(1);
-		z1[i] = z(0);
-		z2[i] = z(1);
-
-		//cout << "============================== \n";
-		//cout << "         Czas: " << time[i] << " s             ";
-		//cout << "\n============================== \n \n";
-		//cout << q << "\n \n";
-		liczbaProbek += 1;
-
-	}
-	
-	ofstream myfile("x.txt");
 	if (myfile.is_open())
 	{
-		myfile << "Czas" << " " << "X" << " " << "Y" << " " << "XR" << " " << "YR" << " " << "u1" << " " << "u2" << " " << "dalfa1" << " " << "dalfa2" << " " << "z1"<< " " << "z2"<< "\n";
-		for (int count = 0; count < Ts; count++)
+		myfile << "Czas" << " " << "X" << " " << "Y" << " " << "XR" << " " << "YR" << " " << "u1" << " " << "u2" << " " << "dalfa1" << " " << "dalfa2" << " " << "z1" << " " << "z2" << "\n";
+
+		for (int i = 0; i < Ts; i++)									// 1000 - 1s (przy kroku 0.001)
 		{
-			myfile << time[count] << " " << gx[count] << " " << gy[count] << " " << xr[count] << " " << yr[count] << " " << u1[count] << " " << u2[count] << " " << da1[count] << " " << da2[count]<< " "<<z1[count]<<" "<<z2[count]<< "\n";
+			time = ts * i;
+
+			eta << 0, 0, R* omega* cos(omega * time), -R * omega * sin(omega * time);
+
+			f = obliczFAlfa(alfa);
+			adX = obliczOperatorAdx(f);
+			adXInv = adX.inverse();
+
+			cKreska = obliczC(alfa);
+			cKreskaInv = cKreska.inverse();
+
+			gfi = g(2) - g(3);
+			T = obliczT(gfi);
+			gInv = -T.transpose() * g;
+
+			vKreska = cKreskaInv * adXInv * eta;
+
+			v << vKreska(0), vKreska(1);
+			dAlfa << vKreska(2), vKreska(3);
+			alfa = alfa + ts * dAlfa;
+
+			X = obliczX(g);
+			dg = X * C * v;				// (10)
+			g = g + ts * dg;
+
+			dz = X * adX * cKreska * vKreska;
+			z = z + ts * dz;
+
+			liczbaProbek += 1;
+			myfile << time << " " << g(0) << " " << g(1) << " " << eta(2) << " " << eta(3) << " " << v(0) << " " << v(1) << " " << dAlfa(0) << " " << dAlfa(1) << " " << z(0) << " " << z(1) << "\n";
 		}
 		myfile.close();
 	}
 	else cout << "Unable to open file";
-	
+
 
 }
