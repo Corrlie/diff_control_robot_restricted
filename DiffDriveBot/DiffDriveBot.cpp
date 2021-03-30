@@ -1,115 +1,99 @@
 #define _USE_MATH_DEFINES
-#include <iostream>						// Strumien wejscia/wyjscia
-#include <Eigen/Dense>					// Biblioteka Eigen
-#include <cmath>						// Biblioteka do obliczen matematycznych
+#include <iostream>			
+#include <Eigen/Dense>				
+#include <cmath>						
 #include <fstream>
 
-using namespace std;					// Przedrostek std
-using namespace Eigen;					// Przedrostek Eigen
-
-// gx - 0, 
-// gy - 1, 
-// gfi r - 2, 
-// gfi l - 3 :: zmienna - indeks w macierzy g
-
-/*
-const int r = 0.026;							// Srednica kol
-const int b = 0.066;							// Rozstaw kol
-const float fi_R0 = 0;							// Wartosc poczatkowa orientacji kola prawego
-const float fi_L0 = 0;							// Wartosc poczatkowa orientacji kola prawego
-const float theta0 = -(r / b)*(fi_R0 - fi_L0);	// Wartosc poczatkowa orientacji robota
-*/
-
-/// ================================================= FUNKCJE ================================================== ///
+using namespace std;				
+using namespace Eigen;					
 
 // ------------------------------------------------ Operator Ad -------------------------------------------------- //
-Matrix4d obliczOperatorAd(Vector4d g) {				// Operator Ad	(9)
-	Matrix4d Wynik;									// Macierz wynikowa
+Matrix4d calcOperatorAd(Vector4d g) {				// Operator Ad	(9)
+	Matrix4d result;									
 
-	double fi = g(2) - g(3);						// Orientacja kol
+	double fi = g(2) - g(3);						// Wheels orientation
 
-	Wynik << cos(fi), -sin(fi), g(1), -g(1),
+	result << cos(fi), -sin(fi), g(1), -g(1),
 		sin(fi), cos(fi), -g(0), g(0),
 		0, 0, 1, 0,
 		0, 0, 0, 1;
 
-	return Wynik;
+	return result;
 }
 
-// --------------------------------------------- Operacja grupowa ------------------------------------------------ //
-Vector4d obliczOperacjaGrupowa(Vector4d g, Vector4d h) {		// Operacja grupowa
-	Matrix4d T;													// Macierz klatkowa (R 0;  I 2x2 0)
-	Vector4d gh;												// Macierz wynikowa
-	double fi = g(2) - g(3);									// Orientacja kol
+// --------------------------------------------- Group operation ------------------------------------------------ //
+Vector4d calcGroupOperation(Vector4d g, Vector4d h) {		// Operacja grupowa
+	Matrix4d T;												
+	Vector4d gh;												
+	double fi = g(2) - g(3);									// Wheels orientation
 
-	T << cos(fi), -sin(fi), 0, 0,								// Macierz klatkowa (R 0;  I 2x2 0)
+	T << cos(fi), -sin(fi), 0, 0,								
 		sin(fi), cos(fi), 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1;
 
-	gh = g + T * h;											// Operacja grupowa
+	gh = g + T * h;										
 
-	return gh;													// g - konfiguracja przeskalowana, h - operator translacji lewej
+	return gh;													// g - scaled configuration, h - left translation operator
 }
 
-// ------------------------------------------------ Sterowania --------------------------------------------------- //
-Matrix4d obliczX(Vector4d e) {
-	Vector4d X1;							// Pole wektorowe sterowania X1
-	Vector4d X2;							// Pole wektorowe sterowania X2
-	Vector4d X3;							// Nawias Liego pierwszego rzedu X3
-	Vector4d X4;							// Nawias Liego drugiego rzedu X4
-	Matrix4d Wynik;							// Macierz wynikowa
+// ------------------------------------------------ Controls --------------------------------------------------- //
+Matrix4d calcX(Vector4d e) {
+	Vector4d X1;							// Control vector field X1
+	Vector4d X2;							// Control vector field X2
+	Vector4d X3;							// Lie Bracket - first rank X3
+	Vector4d X4;							// Lie Bracket - second rank X4
+	Matrix4d result;							
 	double fi;
 	fi = e(2) - e(3);
 
-	X1 << 0.5 * cos(fi), 0.5 * sin(fi), 1, 0;   // Pole wektorowe sterowania X1
-	X2 << 0.5 * cos(fi), 0.5 * sin(fi), 0, 1; // Pole wektorowe sterowania X2
-	X3 << -sin(fi), cos(fi), 0, 0;			// Nawias Liego pierwszego rzedu X3
-	X4 << cos(fi), sin(fi), 0, 0;				// Nawias Liego drugiego rzedu X4
+	X1 << 0.5 * cos(fi), 0.5 * sin(fi), 1, 0; 
+	X2 << 0.5 * cos(fi), 0.5 * sin(fi), 0, 1; 
+	X3 << -sin(fi), cos(fi), 0, 0;			
+	X4 << cos(fi), sin(fi), 0, 0;				
 
-	Wynik.col(0) = X1;
-	Wynik.col(1) = X2;
-	Wynik.col(2) = X3;
-	Wynik.col(3) = X4;
+	result.col(0) = X1;
+	result.col(1) = X2;
+	result.col(2) = X3;
+	result.col(3) = X4;
 
-	return Wynik;												// Macierz sterowañ
+	return result;												// control Matrix
 }
 
-// ------------------------------- Operator Ad na podstawie elementu neutralnego --------------------------------- //
-Matrix4d obliczOperatorAdx(Vector4d g) {
+// ------------------------------- Ad operator based on neutral element --------------------------------- //
+Matrix4d calcOperatorAdX(Vector4d g) {
 
 	Matrix4d operatorAd;											// Operator Ad
-	Matrix4d Xe;														// Macierz sterowan
-	Matrix4d xeInv;													// Odwrocona macierz sterowan
-	Matrix4d Wynik;													// Macierz wynikowa
-	Vector4d e;														// Element neutralny
+	Matrix4d Xe;													// Control matrix
+	Matrix4d xeInv;													// inversed control matrix
+	Matrix4d res;													
+	Vector4d e;														// neutral element
 
 	e << 0, 0, 0, 0;
-	operatorAd = obliczOperatorAd(g);								// Obliczanie operatora Ad
-	Xe = obliczX(e);													// Obliczanie X
+	operatorAd = calcOperatorAd(g);								
+	Xe = calcX(e);													
 
-	xeInv = Xe.inverse();												// Obliczenie  macierzy odwrotnej X
+	xeInv = Xe.inverse();												
 
-	Wynik = xeInv * operatorAd * Xe;									// Obliczenie operatora Adx
-	return Wynik;
+	res = xeInv * operatorAd * Xe;								
+	return res;
 }
+// ------------------------------- Calculate f(alfa) function --------------------------------- //
+Vector4d calcFAlfa(Vector2d alfa) {
 
-// -------------------------------- Funkcja poprzeczna w sasiedztwie poczatku ------------------------------------ //
-Vector4d obliczFAlfa(Vector2d alfa) {
+	double alfa1;			
+	double alfa2;			
+	double beta1;			
+	double beta11;			
+	double beta12;			
+	double beta21;			
+	double beta22;			
+	double gamma1;			
 
-	double alfa1;			// ??
-	double alfa2;			// ??
-	double beta1;			// Parametr beta1 = sqrt(beta11^2+beta12^2)
-	double beta11;			// Parametr beta11
-	double beta12;			// Parametr beta12
-	double beta21;			// Parametr beta21
-	double beta22;			// Parametr beta22
-	double gamma1;			// ??
+	Vector4d fAlfa;			// Result function
 
-	Vector4d fAlfa;			// Funkcja wynikowa
-
-	alfa1 = alfa(0);		// Przypisanie wartosci alfa1
-	alfa2 = alfa(1);		// Przypisanie wartosci alfa1
+	alfa1 = alfa(0);		
+	alfa2 = alfa(1);		
 
 	beta11 = 0.075;
 	beta12 = 0.075;
@@ -125,17 +109,17 @@ Vector4d obliczFAlfa(Vector2d alfa) {
 	return fAlfa;
 }
 
-// ----------------------------- Pochodna funkcji poprzecznej w sasiedztwie poczatku ----------------------------- //
-Matrix<double, 4, 2> obliczDFAlfa(Vector2d alfa) {
+// ----------------------------- Derivative of f(alfa) function ----------------------------- //
+Matrix<double, 4, 2> calcDFAlfa(Vector2d alfa) {
 
-	double alfa1;			// ??
-	double alfa2;			// ??
-	double beta1;			// Parametr beta1 = sqrt(beta11^2+beta12^2)
-	double beta11;			// Parametr beta11
-	double beta12;			// Parametr beta12
-	double beta21;			// Parametr beta21
-	double beta22;			// Parametr beta22
-	double gamma1;			// ??
+	double alfa1;			
+	double alfa2;			
+	double beta1;		
+	double beta11;		
+	double beta12;	
+	double beta21;		
+	double beta22;
+	double gamma1;	
 
 	beta11 = 0.075;
 	beta12 = 0.075;
@@ -160,36 +144,25 @@ Matrix<double, 4, 2> obliczDFAlfa(Vector2d alfa) {
 		-(beta22 * sin(alfa2)) / 2,
 		(beta22 * sin(alfa2)) / 2;
 
-	/*
-		dalfa1 << -(pow(beta1, 2)*(2 * alfa1 - 2 * gamma1)) / 3 - (beta1*cos(alfa1 + gamma1)*pow(cos(alfa2), 2)*(pow(beta22, 2) - 2)) / 4 - beta1 * beta22*cos(alfa2)*cos(alfa1 - gamma1),
-			(pow(beta1, 2)*sin(alfa1 + gamma1)*cos(alfa1 - gamma1)) / 4 + (beta1*cos(alfa1 + gamma1)*(2 * beta22*cos(alfa2) + beta1 * sin(alfa1 - gamma1))) / 4,
-			beta11*cos(alfa1),
-			-beta12 * sin(alfa1);
-
-		dalfa2 << beta1 * beta22*sin(alfa2)*sin(alfa1 - gamma1) - (beta21*beta22*cos(2 * alfa2)) / 2 + (beta1*sin(alfa1 + gamma1)*cos(alfa2)*sin(alfa2)*(pow(beta22, 2) - 2)) / 2,
-			beta21*cos(alfa2) - (beta1*beta22*sin(alfa1 + gamma1)*sin(alfa2)) / 2,
-			-(beta22*sin(alfa2)) / 2,
-			(beta22*sin(alfa2)) / 2;
-	*/
 	dfAlfa.col(0) = dalfa1;
 	dfAlfa.col(1) = dalfa2;
 
 	return dfAlfa;
 }
 
-// ------------------------------------------------- Wyznacznik c ------------------------------------------------ //
-Matrix4d obliczC(Vector2d alfa) {
+// ------------------------------------------------- C determinant ------------------------------------------------ //
+Matrix4d calcC(Vector2d alfa) {
 	Matrix<double, 4, 2> C;
 	Matrix<double, 4, 2> dAlfa;
 	Vector4d fAlfa;
 	Matrix4d X;
 	Matrix4d xInv;
 	Matrix<double, 4, 2> AAlfa;
-	Matrix4d Wynik;
+	Matrix4d result;
 
-	dAlfa = obliczDFAlfa(alfa);			// 4x2 
-	fAlfa = obliczFAlfa(alfa);			// 4x1
-	X = obliczX(fAlfa);					// 4x4
+	dAlfa = calcDFAlfa(alfa);			// 4x2 
+	fAlfa = calcFAlfa(alfa);			// 4x1
+	X = calcX(fAlfa);					// 4x4
 	xInv = X.inverse();					// 4x4
 	AAlfa = xInv * dAlfa;				// 4x4*4x2 = 4x2 
 
@@ -199,45 +172,44 @@ Matrix4d obliczC(Vector2d alfa) {
 		0, 0;
 
 
-	Wynik.col(0) = C.col(0);
-	Wynik.col(1) = C.col(1);
-	Wynik.col(2) = -AAlfa.col(0);
-	Wynik.col(3) = -AAlfa.col(1);
+	result.col(0) = C.col(0);
+	result.col(1) = C.col(1);
+	result.col(2) = -AAlfa.col(0);
+	result.col(3) = -AAlfa.col(1);
 
-	return Wynik;
+	return result;
 }
 
 // ------------------------------------------------- T ------------------------------------------------ //
-Matrix4d obliczT(double gfi) {
+Matrix4d calcT(double gfi) {
 	Matrix2d I;
-	Matrix4d Wynik;
+	Matrix4d result;
 
-	Wynik << cos(gfi), -sin(gfi), 0, 0,
+	result << cos(gfi), -sin(gfi), 0, 0,
 		sin(gfi), cos(gfi), 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1;
 
-	return Wynik;
+	return result;
 }
-/// ================================================= MAIN ================================================== ///
 
 int main()
 {
-	Vector4d eta;					// sygnal referencyjny
-	Matrix4d X;						// sterowania
+	Vector4d eta;					// reference signal
+	Matrix4d X;						// controls
 	Vector4d g;
 	Vector4d dg;
-	Vector2d v;						// sygnal sterujacy
+	Vector2d v;						// control signals
 	Vector2d alfa;
 	Vector2d dAlfa;
-	Matrix4d cKreska;
-	Matrix4d cKreskaInv;
+	Matrix4d cHat;
+	Matrix4d cHatInv;
 	Vector4d f;
 	Matrix<double, 4, 2> C;
 	Matrix4d adX;
 	Matrix4d adXInv;
 	Matrix4d T;
-	Vector4d vKreska;
+	Vector4d vHat;
 	Vector2d gCord;
 	Vector2d Cord;
 	Matrix2d Rot;
@@ -258,7 +230,7 @@ int main()
 	double gfi = 0;
 	double time;
 
-	int liczbaProbek = 0;
+	int numOfSamples = 0;
 
 	Rot << cos(theta0), -sin(theta0), sin(theta0), cos(theta0);
 
@@ -269,46 +241,43 @@ int main()
 
 	alfa << 1, 1;
 
-	//q << 0, 0, 0, 0;
-
 	g << 0, 0, 0, 0;
 	z << 0, 0, 0, 0;
 
 	if (myfile.is_open())
 	{
-	//	myfile << "Czas" << " " << "X" << " " << "Y" << " " << "XR" << " " << "YR" << " " << "u1" << " " << "u2" << " " << "dalfa1" << " " << "dalfa2" << " " << "z1" << " " << "z2" << "\n";
 
-		for (int i = 0; i < Ts; i++)									// 1000 - 1s (przy kroku 0.001)
+		for (int i = 0; i < Ts; i++)									// 1000 - 1s (if step is 0.001)
 		{
 			time = ts * i;
 
 			eta << 0, 0, R* omega* cos(omega * time), -R * omega * sin(omega * time);
 
-			f = obliczFAlfa(alfa);
-			adX = obliczOperatorAdx(f);
+			f = calcFAlfa(alfa);
+			adX = calcOperatorAdX(f);
 			adXInv = adX.inverse();
 
-			cKreska = obliczC(alfa);
-			cKreskaInv = cKreska.inverse();
+			cHat = calcC(alfa);
+			cHatInv = cHat.inverse();
 
 			gfi = g(2) - g(3);
-			T = obliczT(gfi);
+			T = calcT(gfi);
 			gInv = -T.transpose() * g;
 
-			vKreska = cKreskaInv * adXInv * eta;
+			vHat = cHatInv * adXInv * eta;
 
-			v << vKreska(0), vKreska(1);
-			dAlfa << vKreska(2), vKreska(3);
+			v << vHat(0), vHat(1);
+			dAlfa << vHat(2), vHat(3);
 			alfa = alfa + ts * dAlfa;
 
-			X = obliczX(g);
+			X = calcX(g);
 			dg = X * C * v;				// (10)
 			g = g + ts * dg;
 
-			dz = X * adX * cKreska * vKreska;
+			dz = X * adX * cHat * vHat;
 			z = z + ts * dz;
 
-			liczbaProbek += 1;
+			numOfSamples += 1;
 			myfile << time << " " << g(0) << " " << g(1) << " " << eta(2) << " " << eta(3) << " " << v(0) << " " << v(1) << " " << dAlfa(0) << " " << dAlfa(1) << " " << z(0) << " " << z(1) << "\n";
 		}
 		myfile.close();
