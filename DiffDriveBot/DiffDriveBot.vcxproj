@@ -148,6 +148,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DiffDriveBot.cpp" />
+    <ClCompile Include="MobileRobot.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MobileRobot.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
