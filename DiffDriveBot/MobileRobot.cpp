@@ -1,7 +1,33 @@
 #include "MobileRobot.h"
 
-MobileRobot::MobileRobot()
+
+
+MobileRobot::MobileRobot(double r_wheel, double b_wheels, double theta0_orient, double omega_vel)
 {
+	r = r_wheel;
+	b = b_wheels;
+	theta0 = theta0_orient;
+	omega = omega_vel;
+}
+
+double MobileRobot::get_r()
+{
+	return r;
+}
+
+double MobileRobot::get_b()
+{
+	return b;
+}
+
+double MobileRobot::get_theta0()
+{
+	return theta0;
+}
+
+double MobileRobot::get_omega()
+{
+	return omega;
 }
 
 Eigen::Matrix4d MobileRobot::calcOperatorAd(Eigen::Vector4d g)

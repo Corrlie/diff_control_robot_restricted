@@ -1,11 +1,7 @@
-#define _USE_MATH_DEFINES
 #include <iostream>			
-#include <Eigen/Dense>				
-#include <cmath>						
+#include <Eigen/Dense>										
 #include <fstream>
-#include "MobileRobot.h"
-
-using namespace std;				
+#include "MobileRobot.h"				
 using namespace Eigen;					
 
 int main()
@@ -35,19 +31,21 @@ int main()
 	Vector4d z;
 	Vector4d dz;
 	Matrix<double, 4, 2> G;
-	ofstream myfile("x.txt");	// write results to txt file
+	std::ofstream myfile("x.txt");	// write results to txt file
 
 	const int Ts = 200000;	// total number of samples
 	double ts = 0.01;	// step size
 	double time;
 
 	// robots parameters
-	double R = 0.5;
-	double r = 0.05;
-	double b = 0.245;
-	double theta0 = 0;
+	double r = mobileRobot.get_r();
+	double b = mobileRobot.get_b();
+	double theta0 = mobileRobot.get_theta0();
+	double omega = mobileRobot.get_omega();
+
 	double gfi = 0;
-	double omega = M_PI / 1000;
+	double R = 0.5;
+
 	
 	int numOfSamples = 0;
 
@@ -100,7 +98,7 @@ int main()
 		}
 		myfile.close();
 	}
-	else cout << "Unable to open file";
+	else std::cout << "Unable to open file";
 
 
 }
