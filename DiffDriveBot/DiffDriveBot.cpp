@@ -1,36 +1,46 @@
 #include <iostream>			
 #include <Eigen/Dense>										
 #include <fstream>
-#include "MobileRobot.h"				
-using namespace Eigen;					
+#include "MobileRobot.h"
+
+using Eigen::Vector2d;
+using Eigen::Vector4d;
+using Eigen::Matrix2d;
+using Eigen::Matrix4d;
+using Eigen::Matrix;
 
 int main()
 {
 	MobileRobot mobileRobot;	// custom object of mobile robot with restricted wheels movement
 
-	Vector4d eta;					// reference signal
-	Matrix4d X;						// controls
-	Vector4d g;
-	Vector4d dg;
 	Vector2d v;						// control signals
 	Vector2d alfa;
 	Vector2d dAlfa;
-	Matrix4d cHat;
-	Matrix4d cHatInv;
-	Vector4d f;
-	Matrix<double, 4, 2> C;
-	Matrix4d adX;
-	Matrix4d adXInv;
-	Matrix4d T;
-	Vector4d vHat;
 	Vector2d gCord;
 	Vector2d Cord;
-	Matrix2d Rot;
-	Matrix2d RotInv;
+
+	Vector4d eta;					// reference signal
+	Vector4d g;
+	Vector4d dg;
+	Vector4d f;
+	Vector4d vHat;
 	Vector4d gInv;
 	Vector4d z;
 	Vector4d dz;
+
+	Matrix2d Rot;
+	Matrix2d RotInv;
+
+	Matrix4d X;						// controls
+	Matrix4d cHat;
+	Matrix4d cHatInv;
+	Matrix4d adX;
+	Matrix4d adXInv;
+	Matrix4d T;
+	
+	Matrix<double, 4, 2> C;
 	Matrix<double, 4, 2> G;
+
 	std::ofstream myfile("x.txt");	// write results to txt file
 
 	const int Ts = 200000;	// total number of samples
@@ -45,7 +55,6 @@ int main()
 
 	double gfi = 0;
 	double R = 0.5;
-
 	
 	int numOfSamples = 0;
 
