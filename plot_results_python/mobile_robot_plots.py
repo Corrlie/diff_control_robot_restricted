@@ -7,7 +7,7 @@
 import matplotlib.pyplot as plt
 
 
-with open('x.txt') as f:
+with open('results.txt') as f:
     lines = f.readlines()
     time = [float(line.split()[0]) for line in lines]
     x = [float(line.split()[1]) for line in lines]

@@ -3,8 +3,6 @@
 Simulation::Simulation() 
 	: num_of_samples(0), step_size(0)
 {
-	std::cout << "Simulation process started!" << std::endl;
-	std::cout << "Default initial values!" << std::endl;
 }
 
 Simulation::Simulation(const unsigned int& init_num_of_samples, const double& init_step_size)
@@ -15,7 +13,6 @@ Simulation::Simulation(const unsigned int& init_num_of_samples, const double& in
 
 Simulation::~Simulation()
 {
-	std::cout << "Simulation process ended!" << std::endl;
 }
 
 unsigned int Simulation::get_num_of_samples() const
