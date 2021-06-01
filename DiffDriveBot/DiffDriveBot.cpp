@@ -1,7 +1,9 @@
 #include <iostream>			
 #include <Eigen/Dense>										
 #include <fstream>
+#include <memory>
 #include "MobileRobot.h"
+#include "Simulation.h"
 
 using Eigen::Vector2d;
 using Eigen::Vector4d;
@@ -28,6 +30,8 @@ int main()
 	Vector4d z;
 	Vector4d dz;
 
+	std::cout << "Hi";
+
 	Matrix2d Rot;
 	Matrix2d RotInv;
 
@@ -42,9 +46,22 @@ int main()
 	Matrix<double, 4, 2> G;
 
 	std::ofstream myfile("x.txt");	// write results to txt file
+	
 
-	const int Ts = 200000;	// total number of samples
-	double ts = 0.01;	// step size
+	unsigned int num_of_samples;
+	double step_size;
+
+	std::cout << "What is the total number of samples?" << std::endl;
+	std::cin >> num_of_samples;
+	std::cout << "What is the step size?" << std::endl;
+	std::cin >> step_size;
+	Simulation simulation1(num_of_samples, step_size);
+
+	/*
+	const int num_of_samples = 200000;	// total number of samples
+	const double step_size = 0.01;	// step size
+	*/
+
 	double time;
 
 	// robots parameters
@@ -69,10 +86,10 @@ int main()
 
 	g << 0, 0, 0, 0;
 	z << 0, 0, 0, 0;
-
+	
 	if (myfile.is_open())
 	{
-		for (int i = 0; i < Ts; i++)									// 1000 - 1s (if step is 0.001)
+		for (int i = 0; i < Ts; i++)									// 1000 samples - 1s (if step is 0.001)
 		{
 			time = ts * i;
 
@@ -109,5 +126,5 @@ int main()
 	}
 	else std::cout << "Unable to open file";
 
-
+	
 }

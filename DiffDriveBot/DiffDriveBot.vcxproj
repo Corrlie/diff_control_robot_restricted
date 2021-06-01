@@ -149,9 +149,11 @@
   <ItemGroup>
     <ClCompile Include="DiffDriveBot.cpp" />
     <ClCompile Include="MobileRobot.cpp" />
+    <ClCompile Include="Simulation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MobileRobot.h" />
+    <ClInclude Include="Simulation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
