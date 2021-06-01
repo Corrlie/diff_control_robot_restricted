@@ -1,13 +1,9 @@
 # PK WK RW
-# Pracownia Badawczo-Problemowa
-# 2020/2021
-# Rysowanie wykresów na podstawie symulacji wykonanej w C++ (Visual Studio)
-
+# Make charts on the basis of the c++ robot program
 
 import matplotlib.pyplot as plt
 
-
-with open('x.txt') as f:
+with open('results.txt') as f:
     lines = f.readlines()
     time = [float(line.split()[0]) for line in lines]
     x = [float(line.split()[1]) for line in lines]
@@ -28,11 +24,9 @@ print(full_time)
 plt.figure(1)
 plt.plot(x, y, 'k')
 plt.plot(z1, z2, 'r')
-plt.xlim([-1.8, 0.3])
-plt.ylim([-0.75, 1.35])
 plt.grid()
 plt.legend(["(g_x, g_y)", "(z_x, z_y)"])
-plt.savefig("Wykres_1_g_i_z.svg")
+plt.savefig("Plot_1_g_and_z.svg")
 
 plt.figure(2)
 plt.plot(time, xr, 'k')
@@ -40,29 +34,29 @@ plt.plot(time,yr,'r')
 plt.xlim([0, full_time])
 plt.legend(["eta_3","eta_4"])
 plt.grid()
-plt.savefig("Wykres_2_eta3_eta4.svg")
+plt.savefig("Plot_2_eta3_eta4.svg")
 
 plt.figure(3)
-plt.plot(time, u1, 'k')
+plt.plot(time, u1, 'k', linewidth = 0.8)
 plt.xlim([0, full_time])
 plt.legend(["u_1"])
 plt.grid()
-plt.savefig("Wykres_3_u1.svg")
+plt.savefig("Plot_3_u1.svg")
 
 plt.figure(4)
-plt.plot(time, u2, 'k')
+plt.plot(time, u2, 'k', linewidth = 0.8)
 plt.xlim([0, full_time])
 plt.legend(["u_2"])
 plt.grid()
-plt.savefig("Wykres_4_u2.svg")
+plt.savefig("Plot_4_u2.svg")
 
 plt.figure(5)
-plt.plot(time, dalfa1, 'k')
-plt.plot(time,dalfa2,'r')
+plt.plot(time, dalfa1, 'k', linewidth = 0.8)
+plt.plot(time,dalfa2,'r', linewidth = 0.8)
 plt.xlim([0, full_time])
-plt.legend(["dalfa1","dalfa2"])
+plt.legend(["dalfa_1","dalfa_2"])
 plt.grid()
-plt.savefig("Wykres_5_dalfa1_dalfa2.svg")
+plt.savefig("Plot_5_dalfa1_dalfa2.svg")
 
 plt.show()
 
