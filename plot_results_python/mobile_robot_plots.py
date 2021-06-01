@@ -3,6 +3,7 @@
 
 import matplotlib.pyplot as plt
 
+
 with open('results.txt') as f:
     lines = f.readlines()
     time = [float(line.split()[0]) for line in lines]
