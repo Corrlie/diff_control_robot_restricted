@@ -3,6 +3,8 @@
 Simulation::Simulation() 
 	: num_of_samples(0), step_size(0)
 {
+	std::cout << "Simulation process started!" << std::endl;
+	std::cout << "Default simulation parameters!" << std::endl;
 }
 
 Simulation::Simulation(const unsigned int& init_num_of_samples, const double& init_step_size)
@@ -13,6 +15,11 @@ Simulation::Simulation(const unsigned int& init_num_of_samples, const double& in
 
 Simulation::~Simulation()
 {
+	std::cout << "\nThe simulation process has ended!\n" << std::endl;
+
+	std::cout << "To get the graphs: \n";
+	std::cout << "1) Move the results.txt file to the \"plot_results_python\" directory \n2) Run the \"mobile_robot_plots.py\" file located there" << std::endl;
+	std::cout << "Thanks for using the program, goodbye\n" << std::endl;
 }
 
 unsigned int Simulation::get_num_of_samples() const

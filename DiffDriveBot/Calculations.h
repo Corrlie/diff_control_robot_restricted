@@ -12,13 +12,11 @@ using Eigen::Matrix4d;
 using Eigen::Matrix;
 
 
-class Simulation_integration :
-    public Simulation, public MobileRobot
+class Calculations
 {
 private:
     double time;
     unsigned int count_samples;
-
 
 	Vector2d v;						// control signals
 	Vector2d alfa;
@@ -48,19 +46,14 @@ private:
 	Matrix<double, 4, 2> C;
 	Matrix<double, 4, 2> G;
 
-
-
 	double gfi = 0;
 	double R = 0.5;
 
-	double r;
-	double b;
-	double theta0;
-	double omega;
+	double r_loaded, b_loaded, theta0_loaded, omega_loaded;
 
 public:
-    Simulation_integration();
-    ~Simulation_integration();
+    Calculations();
+    ~Calculations();
 	void set_initial_matrices(MobileRobot& mobileRobot);
     void calculate_integrals(MobileRobot& mobileRobot, Simulation& simulation, std::ofstream& file);  
 };

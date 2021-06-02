@@ -1,23 +1,17 @@
-#include "Simulation_integration.h"
+#include "Calculations.h"
 
-
-
-
-Simulation_integration::Simulation_integration()
-	:time(0), count_samples(0)
+Calculations::Calculations()
+	:time(0), count_samples(0), r_loaded(0.0), b_loaded(0.0), theta0_loaded(0.0), omega_loaded(0.0)
 {
     std::cout << "Initialization of integration calculations" << std::endl;
 }
 
-Simulation_integration::~Simulation_integration()
+Calculations::~Calculations()
 {
-    std::cout << "\nIntegration calculations ended!\n" << std::endl;
-	std::cout << "To get the graphs: \n";
-	std::cout << "1) Move the results.txt file to the \"plot_results_python\" directory \n2) Run the \"mobile_robot_plots.py\" file located there" << std::endl;
-	std::cout << "Thanks for using the program, goodbye\n" << std::endl;
+    std::cout << "\rIntegration calculations has ended!\n" << std::endl;
 }
 
-void Simulation_integration::set_initial_matrices(MobileRobot& mobileRobot)
+void Calculations::set_initial_matrices(MobileRobot& mobileRobot)
 {
 	Rot << cos(mobileRobot.get_theta0()), -sin(mobileRobot.get_theta0()), sin(mobileRobot.get_theta0()), cos(mobileRobot.get_theta0());
 
@@ -32,24 +26,24 @@ void Simulation_integration::set_initial_matrices(MobileRobot& mobileRobot)
 	z << 0, 0, 0, 0;
 
 	// robots parameters
-	r = mobileRobot.get_r();
-	b = mobileRobot.get_b();
-	theta0 = mobileRobot.get_theta0();
-	omega = mobileRobot.get_omega();
+	r_loaded = mobileRobot.get_r();
+	b_loaded = mobileRobot.get_b();
+	theta0_loaded = mobileRobot.get_theta0();
+	omega_loaded = mobileRobot.get_omega();
 
 	alfa << 1, 1;
 
 }
 
-void Simulation_integration::calculate_integrals(MobileRobot& mobileRobot, Simulation& simulation, std::ofstream& file)
+void Calculations::calculate_integrals(MobileRobot& mobileRobot, Simulation& simulation, std::ofstream& file)
 {
-	std::cout << "Calculationg... Please wait..." << std::endl;
+	std::cout << "Calculating... Please wait..." << std::endl;
 	if (file.is_open()) {
 		for (int i = 0; i < simulation.get_num_of_samples(); i++)									// 1000 samples - 1s (if step is 0.001)
 		{
 			time = simulation.get_step_size() * i;
 
-			eta << 0, 0, R* omega* cos(omega * time), -R * omega * sin(omega * time);
+			eta << 0, 0, R* omega_loaded* cos(omega_loaded * time), -R * omega_loaded * sin(omega_loaded * time);
 
 			f = mobileRobot.calcFAlfa(alfa);
 			adX = mobileRobot.calcOperatorAdX(f);
@@ -75,13 +69,14 @@ void Simulation_integration::calculate_integrals(MobileRobot& mobileRobot, Simul
 			dz = X * adX * cHat * vHat;
 			z = z + simulation.get_step_size() * dz;
 
+			if (i % 1000 == 0) {
+				std::cout << "Done: " << i * 100 / simulation.get_num_of_samples() << "% \r" << std::flush;
+			}
+			
+			file << time << " " << g(0) << " " << g(1) << " " << eta(2) << " " << eta(3) << " " << v(0) << " " << v(1) << " " << dAlfa(0) << " " << dAlfa(1) << " " << z(0) << " " << z(1) << "\n";
+		
 			count_samples += 1;
 
-			if (i % 1000 == 0) {
-				std::cout << "Done: " << i * 100 / simulation.get_num_of_samples() <<"% \r" << std::flush;
-			}
-
-			file << time << " " << g(0) << " " << g(1) << " " << eta(2) << " " << eta(3) << " " << v(0) << " " << v(1) << " " << dAlfa(0) << " " << dAlfa(1) << " " << z(0) << " " << z(1) << "\n";
 		}
 		file.close();
 	}

@@ -7,6 +7,7 @@ class MobileRobot
 private: 
 	double r, b, theta0, omega;
 public:
+	friend class Calculations;
 	MobileRobot(double r_wheel = 0.05, double b_wheels = 0.245, double theta0_orient = 0, double omega_vel = M_PI / 1000);
 	double get_r();
 	double get_b();

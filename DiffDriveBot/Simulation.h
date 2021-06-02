@@ -6,6 +6,7 @@ private:
 	unsigned int num_of_samples;
 	double step_size;
 public:
+	friend class Calculations;
 	Simulation();
 	Simulation(const unsigned int& init_num_of_samples, const double& init_step_size);
 	~Simulation();
