@@ -1,8 +1,6 @@
 #pragma once
 #include <Eigen/Dense>	
 #include <fstream>
-
-#include "Simulation.h"
 #include "MobileRobot.h"
 
 using Eigen::Vector2d;
@@ -17,6 +15,7 @@ class Calculations
 private:
     double time;
     unsigned int count_samples;
+	MobileRobot m_oMobileRobot;
 
 	Vector2d v;						// control signals
 	Vector2d alfa;
@@ -54,7 +53,9 @@ private:
 public:
     Calculations();
     ~Calculations();
-	void set_initial_matrices(MobileRobot& mobileRobot);
-    void calculate_integrals(MobileRobot& mobileRobot, Simulation& simulation, std::ofstream& file);  
+	void set_initial_matrices();
+    void calculate_integrals(const unsigned int& ui_num_of_samples,
+								const double& d_step_size, 
+								std::ofstream* p_oResultsFile);
 };
 
