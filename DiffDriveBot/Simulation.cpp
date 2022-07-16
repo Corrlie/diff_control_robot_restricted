@@ -3,6 +3,7 @@
 Simulation::Simulation() 
 	: num_of_samples(0), step_size(0)
 {
+	InitializeResultrsFile();
 	std::cout << "Simulation process started!" << std::endl;
 	std::cout << "Default simulation parameters!" << std::endl;
 }
@@ -10,6 +11,7 @@ Simulation::Simulation()
 Simulation::Simulation(const unsigned int& init_num_of_samples, const double& init_step_size)
 	: num_of_samples(init_num_of_samples), step_size(init_step_size)
 {
+	InitializeResultrsFile();
 	std::cout << "Simulation process started!" << std::endl;
 }
 
@@ -40,4 +42,18 @@ double Simulation::get_step_size() const
 void Simulation::set_step_size(double new_step_size)
 {
 	step_size = new_step_size;
+}
+
+void Simulation::InitializeResultrsFile()
+{
+	std::ofstream m_oResultsFile("results.txt");
+}
+
+void Simulation::RunSimulation()
+{
+	m_oCalculations.set_initial_matrices();
+	m_oCalculations.calculate_integrals(get_num_of_samples(), 
+										get_step_size(), 
+										&m_oResultsFile);
+
 }
