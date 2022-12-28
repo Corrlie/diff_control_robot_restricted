@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include "Calculations.h"
+#include <assert.h>
 
 Calculations::Calculations()
 	:time(0), count_samples(0), r_loaded(0.0), b_loaded(0.0), theta0_loaded(0.0), omega_loaded(0.0)

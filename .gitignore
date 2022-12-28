@@ -1,3 +1,10 @@
+# Additional external libraries 
+ExternalIncludes/
+
+# Calculations results
+DiffDriveBot/results.txt
+
+# the rest of gitignore file is pregenerated for visual studio
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudio
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudio
